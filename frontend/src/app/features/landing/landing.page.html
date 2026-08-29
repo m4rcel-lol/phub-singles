@@ -1,0 +1,69 @@
+@if (maintenance(); as message) {
+  <app-maintenance-notice [message]="message" />
+} @else {
+<main class="landing">
+  <header class="topbar">
+    <app-wordmark [small]="true" />
+
+    <!-- Auth buttons: the session is resolved from a public endpoint, so an
+         anonymous visitor never sees a failed request. -->
+    <nav class="auth" aria-label="Account">
+      @if (sessionResolved()) {
+        @if (isAdmin()) {
+          <span class="who">{{ username() }}</span>
+          <a class="btn tiny" routerLink="/admin">Dashboard</a>
+          <button type="button" class="btn btn-ghost tiny" (click)="signOut()" [disabled]="signingOut()">
+            {{ signingOut() ? 'Signing out…' : 'Sign out' }}
+          </button>
+        } @else {
+          <a class="btn btn-primary tiny" routerLink="/admin/login">Sign in</a>
+        }
+      }
+    </nav>
+  </header>
+
+  <section class="hero">
+
+    <h1 class="headline">{{ headline() }}</h1>
+    <p class="lede">{{ lede() }}</p>
+
+    @if (page(); as data) {
+      @if (data.badges.length) {
+        <app-badge-list [badges]="data.badges" />
+      }
+    }
+
+    @if (profilePath(); as path) {
+      <a class="cta" [routerLink]="path">
+        Visit &#64;{{ page()?.profile?.username }}
+        <span class="cta-arrow" aria-hidden="true">→</span>
+      </a>
+      <p class="cta-note">
+        {{ linkCount() }} link{{ linkCount() === 1 ? '' : 's' }} ·
+        <span class="handle">pornhub.singles{{ path }}</span>
+      </p>
+    }
+  </section>
+
+  <section class="features" aria-label="What this is">
+    <div class="feature">
+      <h2>One page</h2>
+      <p>Profile, tagline and an ordered list of links. Opens in a new tab, nothing else.</p>
+    </div>
+    <div class="feature">
+      <h2>Own the data</h2>
+      <p>Views and clicks are counted in a local SQLite file. No third-party analytics.</p>
+    </div>
+    <div class="feature">
+      <h2>Two containers</h2>
+      <p>A Go binary and Caddy. One <code>docker compose up</code> and it is live.</p>
+    </div>
+  </section>
+
+  <p class="disclaimer">
+    A parody project — <a routerLink="/notice">read the notice</a>.
+  </p>
+
+  <app-public-footer />
+</main>
+}

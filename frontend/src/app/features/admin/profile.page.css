@@ -1,0 +1,151 @@
+.title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  color: var(--text-faint);
+  font-size: 0.8125rem;
+  margin: 2px 0 20px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.banner {
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.banner-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.banner-ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- preview ------------------------------------------------------------- */
+
+.preview {
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.preview-label {
+  align-self: flex-start;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 700;
+}
+
+.avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 26%;
+  object-fit: cover;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 0 3px var(--accent);
+}
+
+.avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.preview-name {
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+.preview-tagline {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.preview-bio {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  text-wrap: pretty;
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn.tiny {
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.btn.busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.preview-link {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.preview-link:hover {
+  text-decoration: underline;
+}
+
+.hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent);
+}

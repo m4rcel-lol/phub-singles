@@ -1,0 +1,197 @@
+<section class="head">
+  <div>
+    <h1 class="title">Links</h1>
+    <p class="subtitle">
+      {{ links().length }} total · {{ enabledCount() }} visible on the page
+    </p>
+  </div>
+  <button type="button" class="btn btn-primary" (click)="startCreate()" [disabled]="editing() === 0">
+    Add link
+  </button>
+</section>
+
+@if (error(); as message) {
+  <p class="banner banner-error" role="alert">
+    {{ message }}
+    <button type="button" class="banner-close" (click)="dismissError()" aria-label="Dismiss">×</button>
+  </p>
+}
+@if (notice(); as message) {
+  <p class="banner banner-ok" role="status">{{ message }}</p>
+}
+
+<!-- Create form, rendered above the list so new links appear where they land. -->
+@if (editing() === 0) {
+  <form class="editor" (ngSubmit)="save()" novalidate>
+    <ng-container [ngTemplateOutlet]="editorFields" />
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <ul class="list" role="list">
+    @for (link of links(); track link.id; let i = $index) {
+      <li
+        class="row"
+        [class.dragging]="dragIndex() === i"
+        [class.drop-target]="dropIndex() === i && dragIndex() !== i"
+        [class.disabled]="!link.enabled"
+        [attr.draggable]="editing() === null ? 'true' : 'false'"
+        (dragstart)="onDragStart(i, $event)"
+        (dragover)="onDragOver(i, $event)"
+        (drop)="onDrop(i, $event)"
+        (dragend)="onDragEnd()"
+      >
+        @if (editing() === link.id) {
+          <form class="editor editor-inline" (ngSubmit)="save()" novalidate>
+            <ng-container [ngTemplateOutlet]="editorFields" />
+          </form>
+        } @else {
+          <div class="row-main">
+            <span class="grip" aria-hidden="true" title="Drag to reorder">⋮⋮</span>
+            <span class="icon" aria-hidden="true">{{ link.icon || '↗' }}</span>
+
+            <div class="meta">
+              <span class="row-title">{{ link.title }}</span>
+              <span class="row-url">{{ link.url }}</span>
+            </div>
+
+            <div class="order">
+              <button
+                type="button"
+                class="btn btn-ghost tiny"
+                (click)="move(i, -1)"
+                [disabled]="i === 0"
+                [attr.aria-label]="'Move ' + link.title + ' up'"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost tiny"
+                (click)="move(i, 1)"
+                [disabled]="i === links().length - 1"
+                [attr.aria-label]="'Move ' + link.title + ' down'"
+              >
+                ↓
+              </button>
+            </div>
+
+            <div class="row-actions">
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  [checked]="link.enabled"
+                  [disabled]="busyId() === link.id"
+                  (change)="toggleEnabled(link)"
+                />
+                <span class="track" aria-hidden="true"></span>
+                <span class="sr-only">{{ link.enabled ? 'Visible' : 'Hidden' }}</span>
+              </label>
+
+              <button type="button" class="btn tiny" (click)="startEdit(link)">Edit</button>
+
+              @if (pendingDelete() === link.id) {
+                <button
+                  type="button"
+                  class="btn btn-danger tiny"
+                  (click)="remove(link)"
+                  [disabled]="busyId() === link.id"
+                >
+                  Confirm
+                </button>
+                <button type="button" class="btn btn-ghost tiny" (click)="cancelDelete()">
+                  Cancel
+                </button>
+              } @else {
+                <button type="button" class="btn btn-ghost tiny danger" (click)="confirmDelete(link)">
+                  Delete
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </li>
+    } @empty {
+      <li class="empty">No links yet. Add the first one.</li>
+    }
+  </ul>
+}
+
+<!-- Shared field set for both the create and the edit form. -->
+<ng-template #editorFields>
+  <div class="editor-grid">
+    <div class="field span-2">
+      <label for="link-title">Title</label>
+      <input
+        id="link-title"
+        name="title"
+        type="text"
+        maxlength="80"
+        required
+        [ngModel]="draft().title"
+        (ngModelChange)="patchDraft({ title: $event })"
+        [attr.aria-invalid]="fieldErrors()['title'] ? 'true' : null"
+      />
+      @if (fieldErrors()['title']; as message) {
+        <span class="error">{{ message }}</span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="link-icon">Icon</label>
+      <input
+        id="link-icon"
+        name="icon"
+        type="text"
+        maxlength="8"
+        placeholder="🔥"
+        [ngModel]="draft().icon"
+        (ngModelChange)="patchDraft({ icon: $event })"
+        [attr.aria-invalid]="fieldErrors()['icon'] ? 'true' : null"
+      />
+      <span class="hint">Emoji, optional</span>
+    </div>
+
+    <div class="field span-3">
+      <label for="link-url">URL</label>
+      <input
+        id="link-url"
+        name="url"
+        type="text"
+        inputmode="url"
+        autocapitalize="none"
+        spellcheck="false"
+        required
+        placeholder="https://example.com"
+        [ngModel]="draft().url"
+        (ngModelChange)="patchDraft({ url: $event })"
+        [attr.aria-invalid]="fieldErrors()['url'] ? 'true' : null"
+      />
+      @if (fieldErrors()['url']; as message) {
+        <span class="error">{{ message }}</span>
+      } @else {
+        <span class="hint">http, https, mailto or tel</span>
+      }
+    </div>
+  </div>
+
+  <div class="editor-actions">
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        name="enabled"
+        [ngModel]="draft().enabled"
+        (ngModelChange)="patchDraft({ enabled: $event })"
+      />
+      Visible on the page
+    </label>
+
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-ghost" (click)="cancelEdit()">Cancel</button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+  </div>
+</ng-template>

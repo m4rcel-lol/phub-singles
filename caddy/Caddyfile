@@ -1,0 +1,27 @@
+# Caddy terminates TLS and proxies every request to the Go service, which
+# serves the API, the uploaded media and the compiled Angular bundle.
+# No file_server, no try_files, no rewrites: routing lives in the application.
+
+{
+	# Contact address for the ACME account. Override it with ACME_EMAIL in .env;
+	# the fallback keeps the config valid when the variable is left empty (the
+	# value only matters once a public domain requests a certificate).
+	email {$ACME_EMAIL:admin@pornhub.singles}
+}
+
+# SITE_ADDRESS is "localhost" for local runs (Caddy issues an internal
+# certificate) or your domain in production, e.g. "pornhub.singles".
+{$SITE_ADDRESS:localhost} {
+	header {
+		# HSTS is only honoured over HTTPS; harmless on a local http run.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:8080 {
+		header_up X-Forwarded-Host {host}
+	}
+}

@@ -1,0 +1,236 @@
+<section class="head">
+  <div>
+    <h1 class="title">People</h1>
+    <p class="subtitle">
+      {{ users().length }} account{{ users().length === 1 ? '' : 's' }} ·
+      {{ isOwner() ? 'you can grant roles' : 'roles are the owner’s to grant' }}
+    </p>
+  </div>
+  <button type="button" class="btn btn-primary" (click)="startCreate()" [disabled]="creating()">
+    Add account
+  </button>
+</section>
+
+@if (error(); as message) {
+  <p class="banner banner-error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner-ok" role="status">{{ message }}</p>
+}
+
+@if (creating()) {
+  <form class="card editor" (ngSubmit)="create()" novalidate>
+    <h2 class="card-title">New account</h2>
+
+    <div class="editor-grid">
+      <div class="field">
+        <label for="new-username">Username</label>
+        <input
+          id="new-username"
+          name="username"
+          type="text"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+          [ngModel]="draft().username"
+          (ngModelChange)="patchDraft({ username: $event })"
+          [attr.aria-invalid]="fieldErrors()['username'] ? 'true' : null"
+        />
+        @if (fieldErrors()['username']; as message) {
+          <span class="error">{{ message }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="new-password">Password</label>
+        <input
+          id="new-password"
+          name="password"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          required
+          [ngModel]="draft().password"
+          (ngModelChange)="patchDraft({ password: $event })"
+          [attr.aria-invalid]="fieldErrors()['password'] ? 'true' : null"
+        />
+        @if (fieldErrors()['password']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else {
+          <span class="hint">At least 8 characters.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="new-role">Role</label>
+        <select
+          id="new-role"
+          name="role"
+          [ngModel]="draft().role"
+          (ngModelChange)="patchDraft({ role: $event })"
+          [disabled]="!isOwner()"
+        >
+          <option value="member">Member</option>
+          <option value="admin">Administrator</option>
+        </select>
+        @if (fieldErrors()['role']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else if (!isOwner()) {
+          <span class="hint">Only the owner can create administrators.</span>
+        }
+      </div>
+    </div>
+
+    <div class="editor-actions">
+      <button type="button" class="btn btn-ghost" (click)="cancelCreate()">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="busy() === 'create'">
+        {{ busy() === 'create' ? 'Adding…' : 'Add account' }}
+      </button>
+    </div>
+  </form>
+}
+
+<section class="card progress-card">
+  <div class="progress-head">
+    <h2 class="card-title">Automatic verification</h2>
+    <span class="progress-value">
+      {{ views().toLocaleString() }} / {{ threshold().toLocaleString() }} views
+    </span>
+  </div>
+  <span class="meter" aria-hidden="true">
+    <span class="meter-fill" [style.width.%]="progress()"></span>
+  </span>
+  <p class="hint">
+    The account that owns the page earns the Verified badge on its own once the page passes the
+    threshold. Until then an administrator can grant it by hand.
+    @if (isOwner()) {
+      The threshold lives in <strong>Site settings</strong>.
+    }
+  </p>
+</section>
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <ul class="list" role="list">
+    @for (user of users(); track user.id) {
+      <li class="row" [class.locked]="!user.canManage && !user.canChangeRole">
+        <div class="row-main">
+          <div class="identity">
+            <span class="name">{{ user.username }}</span>
+            <span class="role role-{{ user.role }}">{{ user.role }}</span>
+            @if (user.ownsPage) {
+              <span class="owns">owns the page</span>
+            }
+          </div>
+
+          <app-badge-list class="row-badges" [badges]="user.badges" />
+
+          <div class="row-actions">
+            @if (!user.canManage && !user.canChangeRole) {
+              <span class="locked-note" title="You cannot act on an account at or above your own level">
+                protected
+              </span>
+            } @else {
+              @if (user.canChangeRole) {
+                @if (user.role === 'admin') {
+                  <button
+                    type="button"
+                    class="btn tiny"
+                    [disabled]="busy() === user.username"
+                    (click)="setRole(user, 'member')"
+                  >
+                    Revoke admin
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn tiny"
+                    [disabled]="busy() === user.username"
+                    (click)="setRole(user, 'admin')"
+                  >
+                    Make admin
+                  </button>
+                }
+              }
+
+              @if (user.canManage) {
+                @if (user.autoVerified && !user.verifiedAt) {
+                  <span class="locked-note">verified by views</span>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn tiny"
+                    [class.btn-primary]="!user.verifiedAt"
+                    [disabled]="busy() === user.username"
+                    (click)="toggleVerified(user)"
+                  >
+                    {{ user.verifiedAt ? 'Unverify' : 'Verify' }}
+                  </button>
+                }
+
+                <button type="button" class="btn btn-ghost tiny" (click)="startReset(user)">
+                  Reset password
+                </button>
+
+                @if (user.role !== 'owner') {
+                  @if (pendingDelete() === user.username) {
+                    <button
+                      type="button"
+                      class="btn btn-danger tiny"
+                      [disabled]="busy() === user.username"
+                      (click)="remove(user)"
+                    >
+                      Confirm
+                    </button>
+                    <button type="button" class="btn btn-ghost tiny" (click)="cancelRow()">
+                      Cancel
+                    </button>
+                  } @else {
+                    <button type="button" class="btn btn-ghost tiny danger" (click)="confirmDelete(user)">
+                      Delete
+                    </button>
+                  }
+                }
+              }
+            }
+          </div>
+        </div>
+
+        @if (resetting() === user.username) {
+          <form class="reset" (ngSubmit)="submitReset(user)" novalidate>
+            <label class="sr-only" [attr.for]="'reset-' + user.id">
+              New password for {{ user.username }}
+            </label>
+            <input
+              [id]="'reset-' + user.id"
+              name="newPassword"
+              type="password"
+              autocomplete="new-password"
+              placeholder="New password (min 8 characters)"
+              minlength="8"
+              required
+              [ngModel]="newPassword()"
+              (ngModelChange)="newPassword.set($event)"
+            />
+            <button type="submit" class="btn btn-primary tiny">Set password</button>
+            <button type="button" class="btn btn-ghost tiny" (click)="cancelRow()">Cancel</button>
+          </form>
+        }
+      </li>
+    }
+  </ul>
+}
+
+<section class="card">
+  <h2 class="card-title">From the command line</h2>
+  <p class="hint">
+    Everything here can also be done against the running container — useful when nobody can sign
+    in. <strong>Ownership can only be transferred this way</strong>, on purpose: it is the one
+    change no session should be able to make.
+  </p>
+  <pre class="commands"><code>docker compose exec app phs-server user list
+docker compose exec -e PHS_NEW_PASSWORD=… app phs-server user create bob
+docker compose exec app phs-server user grant-admin bob
+docker compose exec app phs-server user set-owner bob</code></pre>
+</section>

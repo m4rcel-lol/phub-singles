@@ -1,0 +1,83 @@
+name: pornhub-singles
+
+services:
+  # The Go binary: REST API, uploaded media and the embedded Angular bundle.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pornhub-singles/app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PHS_ADDR: ":8080"
+      PHS_DB_PATH: /data/phs.db
+      PHS_UPLOAD_DIR: /data/uploads
+      # Caddy is the only ingress, so the proxy headers can be trusted.
+      PHS_TRUST_PROXY: "true"
+    volumes:
+      - app-data:/data
+    expose:
+      - "8080"
+    # Nothing outside the compose network can reach the app directly.
+    networks:
+      - internal
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # TLS termination and the only published ports.
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      # Never pass an empty value: Caddy's {$VAR:default} only falls back when
+      # the variable is unset, not when it is set but empty.
+      ACME_EMAIL: ${ACME_EMAIL:-admin@pornhub.singles}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # issued certificates
+      - caddy-config:/config
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # Caddy's admin API listens on loopback inside the container only.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  app-data: # SQLite database + uploaded avatars
+  caddy-data: # ACME account and certificates
+  caddy-config:
+
+networks:
+  internal:
+    driver: bridge

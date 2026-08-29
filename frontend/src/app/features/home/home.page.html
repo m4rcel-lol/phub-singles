@@ -1,0 +1,95 @@
+@if (maintenance(); as message) {
+  <app-maintenance-notice [message]="message" />
+} @else {
+<main class="page">
+  @if (loading()) {
+    <!-- Skeleton keeps the layout stable while the single API call resolves. -->
+    <div class="skeleton" aria-hidden="true">
+      <div class="s-avatar"></div>
+      <div class="s-line s-name"></div>
+      <div class="s-line s-tag"></div>
+      @for (row of [1, 2, 3, 4]; track row) {
+        <div class="s-link"></div>
+      }
+    </div>
+    <p class="sr-only" role="status">Loading page…</p>
+  } @else if (missing()) {
+    <div class="state">
+      <p class="state-code">404</p>
+      <p class="state-title">No page at /{{ handle() }}</p>
+      <p class="state-body">That handle does not belong to anyone here.</p>
+      <a class="btn" href="/">Back to the start</a>
+    </div>
+  } @else if (error(); as message) {
+    <div class="state" role="alert">
+      <p class="state-title">Nothing to show</p>
+      <p class="state-body">{{ message }}</p>
+      <button type="button" class="btn" (click)="reload()">Try again</button>
+    </div>
+  } @else if (page(); as data) {
+    <header class="profile">
+      @if (data.profile.avatarUrl) {
+        <img
+          class="avatar"
+          [src]="data.profile.avatarUrl"
+          [alt]="data.profile.displayName"
+          width="104"
+          height="104"
+          decoding="async"
+          fetchpriority="high"
+        />
+      } @else {
+        <div class="avatar avatar-fallback" aria-hidden="true">{{ initial() }}</div>
+      }
+
+      <h1 class="name">
+        <span class="name-text">{{ data.profile.displayName }}</span>
+        @if (verified(); as badge) {
+          <app-verified-mark [title]="badge.title" />
+        }
+      </h1>
+
+      @if (roleBadges().length) {
+        <app-badge-list class="badges" [badges]="roleBadges()" />
+      }
+
+      @if (data.profile.tagline) {
+        <p class="tagline">{{ data.profile.tagline }}</p>
+      }
+      @if (data.profile.bio) {
+        <p class="bio">{{ data.profile.bio }}</p>
+      }
+    </header>
+
+    <nav class="links" aria-label="Links">
+      @for (link of data.links; track link.id) {
+        <a
+          class="link"
+          [href]="link.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          (click)="onLinkClick(link)"
+        >
+          <span class="link-icon" aria-hidden="true">{{ link.icon || '↗' }}</span>
+          <span class="link-title">{{ link.title }}</span>
+          <svg class="link-arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+      } @empty {
+        <p class="empty">No links published yet.</p>
+      }
+    </nav>
+
+  }
+
+  <app-public-footer />
+</main>
+}

@@ -1,0 +1,78 @@
+<h1 class="title">Account</h1>
+<p class="subtitle">
+  Signed in as <strong>{{ username() ?? 'admin' }}</strong>
+</p>
+
+@if (error(); as message) {
+  <p class="banner banner-error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner-ok" role="status">{{ message }}</p>
+}
+
+<form class="card" (ngSubmit)="submit()" novalidate>
+  <h2 class="card-title">Change password</h2>
+
+  <div class="field">
+    <label for="current">Current password</label>
+    <input
+      id="current"
+      name="currentPassword"
+      type="password"
+      autocomplete="current-password"
+      required
+      [ngModel]="current()"
+      (ngModelChange)="current.set($event)"
+      [attr.aria-invalid]="fieldErrors()['currentPassword'] ? 'true' : null"
+    />
+    @if (fieldErrors()['currentPassword']; as message) {
+      <span class="error">{{ message }}</span>
+    }
+  </div>
+
+  <div class="field">
+    <label for="next">New password</label>
+    <input
+      id="next"
+      name="newPassword"
+      type="password"
+      autocomplete="new-password"
+      minlength="8"
+      maxlength="72"
+      required
+      [ngModel]="next()"
+      (ngModelChange)="next.set($event)"
+      [attr.aria-invalid]="fieldErrors()['newPassword'] ? 'true' : null"
+    />
+    @if (fieldErrors()['newPassword']; as message) {
+      <span class="error">{{ message }}</span>
+    } @else {
+      <span class="hint">At least 8 characters.</span>
+    }
+  </div>
+
+  <div class="field">
+    <label for="confirm">Repeat new password</label>
+    <input
+      id="confirm"
+      name="confirmPassword"
+      type="password"
+      autocomplete="new-password"
+      required
+      [ngModel]="confirm()"
+      (ngModelChange)="confirm.set($event)"
+      [attr.aria-invalid]="fieldErrors()['confirm'] ? 'true' : null"
+    />
+    @if (fieldErrors()['confirm']; as message) {
+      <span class="error">{{ message }}</span>
+    }
+  </div>
+
+  <p class="hint">Changing the password signs out every device, including this one.</p>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Change password' }}
+    </button>
+  </div>
+</form>

@@ -1,0 +1,339 @@
+/* Global design tokens and element defaults.
+   The palette is deliberately narrow: near-black surfaces, off-white text and
+   a single orange accent that carries every interactive state. */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0a0a0b;
+  --bg-elevated: #121215;
+  --surface: #16161a;
+  --surface-hover: #1e1e23;
+  --border: #26262c;
+  --border-strong: #34343c;
+
+  --text: #f4f4f5;
+  --text-muted: #9b9ba4;
+  --text-faint: #6a6a73;
+
+  --accent: #ff9000;
+  --accent-hover: #ffa128;
+  --accent-ink: #0a0a0b;
+  --accent-soft: rgba(255, 144, 0, 0.12);
+  --accent-ring: rgba(255, 144, 0, 0.35);
+
+  --danger: #ff5f52;
+  --danger-soft: rgba(255, 95, 82, 0.12);
+  --success: #3ddc84;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+
+  --page-width: 520px;
+  --admin-width: 900px;
+
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --transition: 140ms ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p,
+figure {
+  margin: 0;
+}
+
+/* :any-link is used alongside the bare element selector so the rule outranks
+   the user-agent link styles in every browser. */
+a,
+a:any-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Visible only to screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Shared form + button primitives, used by the admin panel. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+}
+
+.field .hint {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.field .error {
+  font-size: 0.75rem;
+  color: var(--danger);
+}
+
+input[type="text"],
+input[type="url"],
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+input[type="text"]:hover,
+input[type="url"]:hover,
+input[type="password"]:hover,
+textarea:hover {
+  border-color: var(--border-strong);
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+    color var(--transition);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 95, 82, 0.2);
+  border-color: var(--danger);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Document pages (notice, privacy, terms, 404).
+   These live in the global sheet so the three legal screens share one
+   implementation instead of repeating the same component styles.
+   --------------------------------------------------------------------------- */
+
+.doc {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+
+.doc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  transition: color 140ms ease;
+}
+
+.doc-back:hover {
+  color: var(--accent);
+}
+
+.doc h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+.doc .doc-meta {
+  color: var(--text-faint);
+  font-size: 0.8125rem;
+  margin-bottom: 28px;
+}
+
+.doc h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 28px 0 8px;
+  color: var(--text);
+}
+
+.doc p,
+.doc li {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+
+.doc p + p {
+  margin-top: 10px;
+}
+
+.doc ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc a:not(.doc-back):not(.btn) {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.doc a:not(.doc-back):not(.btn):hover {
+  text-decoration: underline;
+}
+
+.doc strong {
+  color: var(--text);
+}
+
+/* Callout used for the parody disclaimer. */
+.doc-callout {
+  padding: 16px 18px;
+  margin: 24px 0;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.doc-callout p {
+  color: var(--text);
+}

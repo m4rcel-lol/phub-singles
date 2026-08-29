@@ -1,0 +1,42 @@
+<div class="shell">
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="/" title="Open the landing page">
+        <app-wordmark [small]="true" />
+      </a>
+
+      <div class="account">
+        @if (username(); as name) {
+          <span class="who">
+            {{ name }}
+            @if (role(); as current) {
+              <span class="role role-{{ current }}">{{ current }}</span>
+            }
+          </span>
+        }
+        <button type="button" class="btn btn-ghost" (click)="signOut()" [disabled]="signingOut()">
+          {{ signingOut() ? 'Signing out…' : 'Sign out' }}
+        </button>
+      </div>
+    </div>
+
+    <nav class="tabs" aria-label="Admin sections">
+      <div class="tabs-inner">
+        @for (tab of tabs(); track tab.path) {
+          <a
+            [routerLink]="['/admin', tab.path]"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="tab"
+          >
+            {{ tab.label }}
+          </a>
+        }
+      </div>
+    </nav>
+  </header>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

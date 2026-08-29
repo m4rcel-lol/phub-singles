@@ -1,0 +1,238 @@
+/* Mobile-first: the page is a single centred column that never exceeds
+   --page-width on larger screens. */
+
+.page {
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 56px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+@media (min-width: 640px) {
+  .page {
+    padding-top: 80px;
+  }
+}
+
+/* --- profile ------------------------------------------------------------- */
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 104px;
+  height: 104px;
+  /* A squircle rather than a circle: softer than a card, still not a badge.
+     The percentage keeps the corner proportional if the size ever changes. */
+  border-radius: 26%;
+  object-fit: cover;
+  background: var(--surface);
+  /* A hairline ring in the accent colour instead of a glow. */
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent);
+}
+
+.avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--surface);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+  /* The seal is punched out against the page, not against a chip. */
+  --verified-tick: var(--bg);
+}
+
+.name-text {
+  text-wrap: balance;
+}
+
+.badges {
+  margin-top: 2px;
+  justify-content: center;
+}
+
+.tagline {
+  color: var(--accent);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.bio {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+
+/* --- links --------------------------------------------------------------- */
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.link {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    transform var(--transition);
+}
+
+.link:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.link:active {
+  transform: translateY(0);
+  background: var(--accent-soft);
+}
+
+.link-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.link-title {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-arrow {
+  width: 16px;
+  height: 16px;
+  justify-self: end;
+  color: var(--text-faint);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--transition), transform var(--transition), color var(--transition);
+}
+
+.link:hover .link-arrow,
+.link:focus-visible .link-arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--accent);
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.9375rem;
+  padding: 24px 0;
+}
+
+/* --- loading / error ------------------------------------------------------ */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.s-avatar,
+.s-line,
+.s-link {
+  background: var(--surface);
+  border-radius: var(--radius);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.s-avatar {
+  width: 104px;
+  height: 104px;
+  border-radius: 26%;
+}
+
+.s-line {
+  height: 14px;
+}
+
+.s-name {
+  width: 180px;
+  margin-top: 8px;
+}
+
+.s-tag {
+  width: 120px;
+  margin-bottom: 20px;
+}
+
+.s-link {
+  width: 100%;
+  height: 58px;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.state-code {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.state-title {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.state-body {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin-bottom: 6px;
+}

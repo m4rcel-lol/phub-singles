@@ -1,0 +1,147 @@
+<h1 class="title">Profile</h1>
+<p class="subtitle">This is the header visitors see above your links.</p>
+
+@if (error(); as message) {
+  <p class="banner banner-error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner-ok" role="status">{{ message }}</p>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="layout">
+    <form class="card" (ngSubmit)="save()" novalidate>
+      <div class="field">
+        <label for="username">Page handle</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          required
+          autocapitalize="none"
+          spellcheck="false"
+          [maxlength]="limits.username"
+          [ngModel]="username()"
+          (ngModelChange)="username.set($event)"
+          [attr.aria-invalid]="fieldErrors()['username'] ? 'true' : null"
+        />
+        @if (fieldErrors()['username']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else {
+          <span class="hint">
+            Your page lives at <code>{{ publicPath() }}</code> · lowercase letters, digits, - and _
+          </span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="displayName">Display name</label>
+        <input
+          id="displayName"
+          name="displayName"
+          type="text"
+          required
+          [maxlength]="limits.displayName"
+          [ngModel]="displayName()"
+          (ngModelChange)="displayName.set($event)"
+          [attr.aria-invalid]="fieldErrors()['displayName'] ? 'true' : null"
+        />
+        @if (fieldErrors()['displayName']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else {
+          <span class="hint">{{ displayName().length }}/{{ limits.displayName }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="tagline">Tagline</label>
+        <input
+          id="tagline"
+          name="tagline"
+          type="text"
+          [maxlength]="limits.tagline"
+          [ngModel]="tagline()"
+          (ngModelChange)="tagline.set($event)"
+          [attr.aria-invalid]="fieldErrors()['tagline'] ? 'true' : null"
+        />
+        @if (fieldErrors()['tagline']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else {
+          <span class="hint">One short line, shown in orange.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="bio">Bio</label>
+        <textarea
+          id="bio"
+          name="bio"
+          rows="4"
+          [maxlength]="limits.bio"
+          [ngModel]="bio()"
+          (ngModelChange)="bio.set($event)"
+          [attr.aria-invalid]="fieldErrors()['bio'] ? 'true' : null"
+        ></textarea>
+        @if (fieldErrors()['bio']; as message) {
+          <span class="error">{{ message }}</span>
+        } @else {
+          <span class="hint">{{ bio().length }}/{{ limits.bio }}</span>
+        }
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save profile' }}
+        </button>
+      </div>
+    </form>
+
+    <aside class="card preview">
+      <p class="preview-label">Preview</p>
+      <a class="preview-link" [href]="publicPath()" target="_blank" rel="noopener">
+        pornhub.singles{{ publicPath() }} ↗
+      </a>
+
+      @if (profile()?.avatarUrl; as avatar) {
+        <img class="avatar" [src]="avatar" alt="Current avatar" width="88" height="88" />
+      } @else {
+        <div class="avatar avatar-fallback" aria-hidden="true">{{ initial() }}</div>
+      }
+
+      <p class="preview-name">{{ displayName() || 'Your name' }}</p>
+      @if (tagline()) {
+        <p class="preview-tagline">{{ tagline() }}</p>
+      }
+      @if (bio()) {
+        <p class="preview-bio">{{ bio() }}</p>
+      }
+
+      <div class="avatar-actions">
+        <label class="btn tiny" [class.busy]="uploading()">
+          {{ uploading() ? 'Working…' : 'Upload image' }}
+          <input
+            type="file"
+            class="sr-only"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            [disabled]="uploading()"
+            (change)="onAvatarSelected($event)"
+          />
+        </label>
+
+        @if (profile()?.avatarUrl) {
+          <button
+            type="button"
+            class="btn btn-ghost tiny"
+            (click)="removeAvatar()"
+            [disabled]="uploading()"
+          >
+            Remove
+          </button>
+        }
+      </div>
+      <p class="hint">JPEG, PNG, GIF or WebP · up to 2 MB</p>
+    </aside>
+  </div>
+}

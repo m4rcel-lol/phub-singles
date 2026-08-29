@@ -1,0 +1,133 @@
+<h1 class="title">Site settings</h1>
+<p class="subtitle">Owner only. These change what every visitor sees.</p>
+
+@if (error(); as message) {
+  <p class="banner banner-error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner-ok" role="status">{{ message }}</p>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else if (settings(); as current) {
+  <form (ngSubmit)="save()" novalidate>
+    <section class="card">
+      <h2 class="card-title">Landing page</h2>
+
+      <div class="field">
+        <label for="headline">Headline</label>
+        <input
+          id="headline"
+          name="headline"
+          type="text"
+          required
+          [maxlength]="limits()?.headline ?? 80"
+          [ngModel]="current.headline"
+          (ngModelChange)="patch({ headline: $event })"
+        />
+        <span class="hint">The large line at the top of “/”.</span>
+      </div>
+
+      <div class="field">
+        <label for="lede">Intro text</label>
+        <textarea
+          id="lede"
+          name="lede"
+          rows="3"
+          [maxlength]="limits()?.lede ?? 240"
+          [ngModel]="current.lede"
+          (ngModelChange)="patch({ lede: $event })"
+        ></textarea>
+        <span class="hint">{{ current.lede.length }}/{{ limits()?.lede ?? 240 }}</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Verification</h2>
+
+      <div class="field narrow">
+        <label for="threshold">Automatic Verified badge at</label>
+        <input
+          id="threshold"
+          name="verifiedThreshold"
+          type="number"
+          inputmode="numeric"
+          [min]="limits()?.minThreshold ?? 1"
+          [max]="limits()?.maxThreshold ?? 100000000"
+          required
+          [ngModel]="current.verifiedThreshold"
+          (ngModelChange)="patch({ verifiedThreshold: +$event })"
+        />
+        <span class="hint">
+          Page views after which the page owner is verified without a grant. Lowering it can
+          verify a page immediately; raising it can take the badge away again.
+        </span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Availability</h2>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          name="maintenance"
+          [ngModel]="current.maintenance"
+          (ngModelChange)="patch({ maintenance: $event })"
+        />
+        <span>
+          <strong>Maintenance mode</strong>
+          <span class="hint">
+            Visitors see a notice instead of the page. Signed-in administrators still see the real
+            site, so you can check your work.
+          </span>
+        </span>
+      </label>
+
+      <div class="field">
+        <label for="maintenanceMessage">Notice shown to visitors</label>
+        <input
+          id="maintenanceMessage"
+          name="maintenanceMessage"
+          type="text"
+          [maxlength]="limits()?.maintenanceMessage ?? 200"
+          [ngModel]="current.maintenanceMessage"
+          (ngModelChange)="patch({ maintenanceMessage: $event })"
+        />
+      </div>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          name="indexing"
+          [ngModel]="current.indexing"
+          (ngModelChange)="patch({ indexing: $event })"
+        />
+        <span>
+          <strong>Allow search engines</strong>
+          <span class="hint">
+            Off writes a full <code>Disallow</code> into <code>/robots.txt</code>. Well-behaved
+            crawlers obey it; it is not a security control.
+          </span>
+        </span>
+      </label>
+    </section>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : 'Save settings' }}
+      </button>
+    </div>
+  </form>
+
+  <section class="card note">
+    <h2 class="card-title">Not here on purpose</h2>
+    <p class="hint">
+      Ownership transfer is command-line only —
+      <code>phs-server user set-owner &lt;username&gt;</code> — so no signed-in session, including
+      this one, can hand the site away. Ports, TLS, the database path and the session lifetime stay
+      in <code>.env</code>, since changing them means restarting the container anyway.
+    </p>
+  </section>
+}

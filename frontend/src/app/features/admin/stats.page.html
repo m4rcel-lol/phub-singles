@@ -1,0 +1,94 @@
+<div class="head">
+  <div>
+    <h1 class="title">Stats</h1>
+    <p class="subtitle">First-party counters only — nothing leaves this server.</p>
+  </div>
+
+  <div class="range" role="group" aria-label="Chart range">
+    @for (option of [7, 14, 30]; track option) {
+      <button
+        type="button"
+        class="range-btn"
+        [class.active]="days() === option"
+        (click)="setRange(option)"
+      >
+        {{ option }}d
+      </button>
+    }
+  </div>
+</div>
+
+@if (error(); as message) {
+  <p class="banner" role="alert">{{ message }}</p>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else if (stats(); as data) {
+  <section class="totals">
+    <div class="tile">
+      <span class="tile-label">Page views</span>
+      <span class="tile-value">{{ data.totalViews.toLocaleString() }}</span>
+    </div>
+    <div class="tile">
+      <span class="tile-label">Link clicks</span>
+      <span class="tile-value">{{ data.totalClicks.toLocaleString() }}</span>
+    </div>
+    <div class="tile">
+      <span class="tile-label">Clicks / view</span>
+      <span class="tile-value">{{ ctr() }}</span>
+    </div>
+    <div class="tile">
+      <span class="tile-label">Active links</span>
+      <span class="tile-value">{{ data.activeLinks }}<small>/{{ data.totalLinks }}</small></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Activity</h2>
+    @if (data.daily.length) {
+      <div class="chart" role="img" aria-label="Daily views and clicks">
+        @for (day of data.daily; track day.day) {
+          <div class="col" [title]="day.day + ': ' + day.views + ' views, ' + day.clicks + ' clicks'">
+            <div class="bars">
+              <span class="bar bar-views" [style.height.%]="height(day.views)"></span>
+              <span class="bar bar-clicks" [style.height.%]="height(day.clicks)"></span>
+            </div>
+            <span class="col-label">{{ shortDay(day.day) }}</span>
+          </div>
+        }
+      </div>
+      <div class="legend">
+        <span class="key key-views">Views</span>
+        <span class="key key-clicks">Clicks</span>
+      </div>
+    } @else {
+      <p class="muted">No activity recorded in this range yet.</p>
+    }
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Clicks per link</h2>
+    @if (ranked().length) {
+      <ul class="ranking" role="list">
+        @for (link of ranked(); track link.id) {
+          <li class="rank-row" [class.off]="!link.enabled">
+            <span class="rank-icon" aria-hidden="true">{{ link.icon || '↗' }}</span>
+            <span class="rank-title">
+              {{ link.title }}
+              @if (!link.enabled) {
+                <span class="tag">hidden</span>
+              }
+            </span>
+            <span class="meter" aria-hidden="true">
+              <span class="meter-fill" [style.width.%]="share(link.clicks)"></span>
+            </span>
+            <span class="rank-value">{{ link.clicks.toLocaleString() }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="muted">No links yet.</p>
+    }
+  </section>
+}

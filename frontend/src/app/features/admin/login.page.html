@@ -1,0 +1,46 @@
+<main class="login">
+  <form class="card" (ngSubmit)="submit()" novalidate>
+    <div class="brand">
+      <app-wordmark />
+      <p class="sub">Admin sign in</p>
+    </div>
+
+    @if (error(); as message) {
+      <p class="banner" role="alert">{{ message }}</p>
+    }
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input
+        id="username"
+        name="username"
+        type="text"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+        required
+        [ngModel]="username()"
+        (ngModelChange)="username.set($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        autocomplete="current-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary submit" [disabled]="busy()">
+      {{ busy() ? 'Signing in…' : 'Sign in' }}
+    </button>
+
+    <a class="back" href="/">← Back to the page</a>
+  </form>
+</main>
