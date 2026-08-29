@@ -14,7 +14,7 @@ the whole front end is ~80 kB over the wire.
 | Frontend   | Angular 22, standalone components, zoneless     | Signals-only change detection, OnPush everywhere, lazy admin routes |
 | Backend    | Go 1.26, `net/http` only                        | Go 1.22+ `ServeMux` covers method+pattern routing, so no router dependency |
 | Database   | SQLite via `modernc.org/sqlite`                 | Pure Go, no cgo, one file on one volume |
-| Ingress    | Caddy                                           | TLS and `reverse_proxy`, nothing else |
+| Ingress    | Docker port mapping                             | Direct HTTP on port 25169 |
 | Runtime    | Distroless, non-root, static binary             | ~20 MB image, no shell, no package manager |
 
 Only two Go dependencies are used: the SQLite driver and `golang.org/x/crypto` for bcrypt.
@@ -24,12 +24,12 @@ The front end has no runtime dependencies beyond Angular itself.
 
 ```bash
 cp .env.example .env
-# edit .env: set PHS_ADMIN_PASSWORD, and SITE_ADDRESS if you have a domain
+# edit .env: set PHS_ADMIN_PASSWORD
 docker compose up --build -d
 ```
 
-Then open <https://localhost> (Caddy issues a local certificate for `localhost`, so your
-browser will warn once) and sign in at <https://localhost/admin>.
+Then open <http://localhost:25169> and sign in at <http://localhost:25169/admin>.
+For a public deployment, terminate TLS in infrastructure outside this Compose stack.
 
 Seed data ships with the schema, so the site looks finished on first boot: a profile and
 six example links at `/creator`.
@@ -141,17 +141,15 @@ documents the full set. The variables that matter:
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `SITE_ADDRESS` | `localhost` | Caddy site address. Use your domain in production. |
-| `ACME_EMAIL` | — | Contact address for Let's Encrypt. Must not be empty. |
 | `PHS_ADMIN_USERNAME` | `admin` | Bootstrap admin, created on first start. |
 | `PHS_ADMIN_PASSWORD` | — | Required on first start. Minimum 8 characters, bcrypt-hashed before storage. |
 | `PHS_ADMIN_PASSWORD_RESET` | `false` | Set `true` for a single start to reset a forgotten password, then set it back. |
-| `PHS_PUBLIC_URL` | `http://localhost:8080` | Canonical URL; used for logging and the same-origin check. |
+| `PHS_PUBLIC_URL` | `http://localhost:8080` | Canonical URL; set it to the public origin. Compose uses `http://localhost:25169`. |
 | `PHS_SESSION_TTL` | `24h` | Admin session lifetime. |
 | `PHS_VIEW_WINDOW` | `12h` | How long one visitor's page view is de-duplicated. |
 | `PHS_SECURE_COOKIE` | `true` | Only set `false` when serving plain HTTP locally. |
 | `PHS_MAX_UPLOAD_BYTES` | `2097152` | Avatar upload limit. |
-| `PHS_CORS_ORIGINS` | — | Comma-separated extra origins. Empty means same-origin only, which is correct behind Caddy. |
+| `PHS_CORS_ORIGINS` | — | Comma-separated extra origins. Empty means same-origin only. |
 | `PHS_LOG_LEVEL` / `PHS_LOG_FORMAT` | `info` / `json` | Structured logging via `log/slog`. |
 
 The admin password is only read on first start (or when `PHS_ADMIN_PASSWORD_RESET=true`);
@@ -237,21 +235,18 @@ Errors are always `{"error": "code", "message": "...", "fields": {...}}`.
 ## Architecture note
 
 ```
-        browser
-           │  https
-    ┌──────▼──────┐   proxy only (no file_server, no try_files)
-    │    caddy    │──────────────┐
-    └─────────────┘              │
-                          ┌──────▼───────────────────────────┐
-                          │ app (single static Go binary)    │
-                          │  • /api/*     JSON API           │
-                          │  • /uploads/* avatar files       │
-                          │  • /*         embedded Angular   │
-                          └──────┬───────────────────────────┘
-                                 │
-                          ┌──────▼──────┐
-                          │  /data      │  SQLite (WAL) + uploads
-                          └─────────────┘
+          browser
+             │  http://localhost:25169
+     ┌───────▼────────────────────────────────┐
+     │ app (single static Go binary)           │
+     │  • /api/*     JSON API                  │
+     │  • /uploads/* avatar files              │
+     │  • /*         embedded Angular          │
+     └────────────────┬────────────────────────┘
+                      │
+               ┌──────▼──────┐
+               │  /data      │  SQLite (WAL) + uploads
+               └─────────────┘n```
 ```
 
 **One binary serves everything.** The Angular production build is embedded with
