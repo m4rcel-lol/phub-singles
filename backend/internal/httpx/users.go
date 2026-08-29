@@ -133,6 +133,9 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if problem != "" {
 		fields["username"] = problem
 	}
+	if _, problem := validateHandle(req.Username); problem != "" {
+		fields["username"] = "A profile handle is required: " + problem
+	}
 	if len(req.Password) < 8 {
 		fields["password"] = "Must be at least 8 characters."
 	}

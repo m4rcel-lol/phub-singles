@@ -1,0 +1,44 @@
+<main class="register">
+  <form class="card" (ngSubmit)="submit()" novalidate>
+    <div class="brand">
+      <app-wordmark />
+      <p class="sub">Create your page</p>
+    </div>
+
+    <p class="intro">Choose a handle and password. No email setup is required.</p>
+
+    @if (error(); as message) {
+      <p class="banner" role="alert">{{ message }}</p>
+    }
+
+    <div class="field">
+      <label for="username">Handle</label>
+      <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
+        spellcheck="false" required maxlength="32" [ngModel]="username()"
+        (ngModelChange)="username.set($event)" [attr.aria-invalid]="fieldErrors()['username'] ? 'true' : null" />
+      @if (fieldErrors()['username']; as message) { <span class="error">{{ message }}</span> }
+      @else { <span class="hint">Your page will be at /{{ username() || 'your-handle' }}.</span> }
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8"
+        [ngModel]="password()" (ngModelChange)="password.set($event)"
+        [attr.aria-invalid]="fieldErrors()['password'] ? 'true' : null" />
+      @if (fieldErrors()['password']; as message) { <span class="error">{{ message }}</span> }
+    </div>
+
+    <div class="field">
+      <label for="confirm-password">Confirm password</label>
+      <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" required
+        [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)"
+        [attr.aria-invalid]="fieldErrors()['confirmPassword'] ? 'true' : null" />
+      @if (fieldErrors()['confirmPassword']; as message) { <span class="error">{{ message }}</span> }
+    </div>
+
+    <button type="submit" class="btn btn-primary submit" [disabled]="busy()">
+      {{ busy() ? 'Creating…' : 'Create account' }}
+    </button>
+    <a class="back" routerLink="/admin/login">Already have an account? Sign in</a>
+  </form>
+</main>

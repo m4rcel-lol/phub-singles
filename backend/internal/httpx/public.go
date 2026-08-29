@@ -50,22 +50,38 @@ func (s *Server) handlePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile, err := s.st.Profile(r.Context())
+	handle := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("handle")))
+	if handle == "" {
+		// The landing page still needs a featured profile.  It remains the owner
+		// profile for backwards compatibility with existing bookmarks.
+		profile, err := s.st.Profile(r.Context())
+		if err != nil {
+			s.writeStoreError(w, r, err)
+			return
+		}
+		s.writePublicPage(w, r, settings, profile)
+		return
+	}
+	profile, err := s.st.ProfileByHandle(r.Context(), handle)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
 	}
-	if handle := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("handle"))); handle != "" &&
-		handle != strings.ToLower(profile.Username) {
-		writeError(w, http.StatusNotFound, "not_found", "No page lives at that address.")
-		return
-	}
-	links, err := s.st.Links(r.Context(), true)
+	s.writePublicPage(w, r, settings, profile)
+}
+
+func (s *Server) writePublicPage(w http.ResponseWriter, r *http.Request, settings store.SiteSettings, profile store.Profile) {
+	user, err := s.st.UserByProfileHandle(r.Context(), profile.Username)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
 	}
-	badges, err := s.st.ProfileBadges(r.Context())
+	links, err := s.st.Links(r.Context(), user.ID, true)
+	if err != nil {
+		s.writeStoreError(w, r, err)
+		return
+	}
+	state, err := s.st.ProfileBadgeState(r.Context())
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -74,7 +90,7 @@ func (s *Server) handlePage(w http.ResponseWriter, r *http.Request) {
 	out := pagePayload{
 		Site:    sitePayload{Headline: settings.Headline, Lede: settings.Lede},
 		Profile: profile,
-		Badges:  badges,
+		Badges:  s.st.UserBadges(user, state.OwnerID == user.ID, state.Views, state.Threshold),
 		Links:   make([]publicLink, 0, len(links)),
 	}
 	for _, l := range links {

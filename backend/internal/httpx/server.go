@@ -78,31 +78,39 @@ func (s *Server) routes() http.Handler {
 	// --- public API ---------------------------------------------------------
 	mux.HandleFunc("GET /api/page", s.handlePage)
 	mux.HandleFunc("GET /api/session", s.handleSession)
+	mux.Handle("POST /api/register",
+		s.requireSameOrigin(s.rateLimit(s.loginLimiter, http.HandlerFunc(s.handleRegister))))
 	mux.Handle("POST /api/views", s.rateLimit(s.viewLimiter, http.HandlerFunc(s.handleRegisterView)))
 	mux.Handle("POST /api/links/{id}/click", s.rateLimit(s.clickLimiter, http.HandlerFunc(s.handleRegisterClick)))
 
-	// --- admin authentication ----------------------------------------------
+	// --- account authentication --------------------------------------------
 	mux.Handle("POST /api/admin/login",
 		s.requireSameOrigin(s.rateLimit(s.loginLimiter, http.HandlerFunc(s.handleLogin))))
 	mux.Handle("POST /api/admin/logout", s.requireSameOrigin(http.HandlerFunc(s.handleLogout)))
 	mux.Handle("POST /api/admin/password",
 		s.requireSameOrigin(s.requireAuth(http.HandlerFunc(s.handleChangePassword))))
 
+	// --- self-service profile ------------------------------------------------
+	// Every signed-in account owns exactly one profile.  The historical /admin
+	// API path is retained for client compatibility, but it no longer implies
+	// administrative access for these own-profile operations.
+	self := func(h http.HandlerFunc) http.Handler {
+		return s.requireSameOrigin(s.requireAuth(h))
+	}
+	mux.Handle("GET /api/admin/profile", self(s.handleGetProfile))
+	mux.Handle("PUT /api/admin/profile", self(s.handleUpdateProfile))
+	mux.Handle("POST /api/admin/profile/avatar", self(s.handleUploadAvatar))
+	mux.Handle("DELETE /api/admin/profile/avatar", self(s.handleDeleteAvatar))
+	mux.Handle("GET /api/admin/links", self(s.handleListLinks))
+	mux.Handle("POST /api/admin/links", self(s.handleCreateLink))
+	mux.Handle("PUT /api/admin/links/order", self(s.handleReorderLinks))
+	mux.Handle("PUT /api/admin/links/{id}", self(s.handleUpdateLink))
+	mux.Handle("DELETE /api/admin/links/{id}", self(s.handleDeleteLink))
+
 	// --- admin resources ----------------------------------------------------
 	admin := func(h http.HandlerFunc) http.Handler {
 		return s.requireSameOrigin(s.requireAuth(s.requireAdmin(h)))
 	}
-	mux.Handle("GET /api/admin/profile", admin(s.handleGetProfile))
-	mux.Handle("PUT /api/admin/profile", admin(s.handleUpdateProfile))
-	mux.Handle("POST /api/admin/profile/avatar", admin(s.handleUploadAvatar))
-	mux.Handle("DELETE /api/admin/profile/avatar", admin(s.handleDeleteAvatar))
-
-	mux.Handle("GET /api/admin/links", admin(s.handleListLinks))
-	mux.Handle("POST /api/admin/links", admin(s.handleCreateLink))
-	mux.Handle("PUT /api/admin/links/order", admin(s.handleReorderLinks))
-	mux.Handle("PUT /api/admin/links/{id}", admin(s.handleUpdateLink))
-	mux.Handle("DELETE /api/admin/links/{id}", admin(s.handleDeleteLink))
-
 	mux.Handle("GET /api/admin/stats", admin(s.handleStats))
 
 	// Account management: administrators may act on members, the owner on

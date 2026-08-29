@@ -100,7 +100,8 @@ func (s *Server) handleUploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	previous, err := s.st.SetAvatarURL(r.Context(), uploadPrefix+name)
+	user := userFrom(r.Context())
+	previous, err := s.st.SetAvatarURL(r.Context(), user.ID, uploadPrefix+name)
 	if err != nil {
 		os.Remove(dest) // keep the directory consistent with the database
 		s.writeStoreError(w, r, err)
@@ -108,7 +109,7 @@ func (s *Server) handleUploadAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	s.removeManagedUpload(previous)
 
-	profile, err := s.st.Profile(r.Context())
+	profile, err := s.st.ProfileByUser(r.Context(), user.ID)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -118,14 +119,15 @@ func (s *Server) handleUploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteAvatar clears the avatar and falls back to the generated initial.
 func (s *Server) handleDeleteAvatar(w http.ResponseWriter, r *http.Request) {
-	previous, err := s.st.SetAvatarURL(r.Context(), "")
+	user := userFrom(r.Context())
+	previous, err := s.st.SetAvatarURL(r.Context(), user.ID, "")
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
 	}
 	s.removeManagedUpload(previous)
 
-	profile, err := s.st.Profile(r.Context())
+	profile, err := s.st.ProfileByUser(r.Context(), user.ID)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return

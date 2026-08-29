@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { apiMessage } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -9,7 +9,7 @@ import { Wordmark } from '../../shared/wordmark';
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, Wordmark],
+  imports: [FormsModule, RouterLink, Wordmark],
   templateUrl: './login.page.html',
   styleUrl: './login.page.css',
 })
@@ -30,7 +30,10 @@ export class LoginPage {
    */
   private destination(): string {
     const next = this.route.snapshot.queryParamMap.get('next') ?? '';
-    return next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin/links';
+    if (next === '/profile' || (next.startsWith('/admin') && !next.startsWith('//'))) {
+      return next;
+    }
+    return this.auth.isAdmin() ? '/admin/links' : '/profile';
   }
 
   protected submit(): void {

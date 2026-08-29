@@ -20,6 +20,11 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type registrationRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 // sessionResponse is returned by both the public session probe and login, so
 // the client has one shape to reason about.
 type sessionResponse struct {
@@ -87,16 +92,6 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !user.IsAdmin() {
-		// A demoted account keeps its data and its badges but has nothing to
-		// manage, so say so plainly instead of signing it into an empty panel.
-		s.log.WarnContext(r.Context(), "login refused for non-admin account",
-			"username", user.Username, "role", user.Role)
-		writeError(w, http.StatusForbidden, "not_an_admin",
-			"This account no longer has administrative access.")
-		return
-	}
-
 	// A session cookie marked Secure is dropped by the browser on plain HTTP,
 	// which looks exactly like "login works but every page bounces back to the
 	// form". Warn once, at the point where it can still be diagnosed.
@@ -113,13 +108,59 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setSessionCookie(w, token)
-	s.log.InfoContext(r.Context(), "admin signed in", "username", user.Username, "ip", s.clientIP(r))
+	s.log.InfoContext(r.Context(), "user signed in", "username", user.Username, "ip", s.clientIP(r))
 
 	writeJSON(w, http.StatusOK, sessionResponse{
 		Authenticated: true,
 		Username:      user.Username,
 		Role:          user.Role,
 		IsAdmin:       user.IsAdmin(),
+		ExpiresIn:     int64(s.cfg.SessionTTL.Seconds()),
+	})
+}
+
+// handleRegister creates a regular account and signs it in immediately.  No
+// email delivery is required: deployments that want email verification can
+// put that policy in front of registration without making a local install
+// dependent on a mailbox or an SMTP service.
+func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
+	var req registrationRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	handle, handleProblem := validateHandle(req.Username)
+	fields := map[string]string{}
+	if handleProblem != "" {
+		fields["username"] = handleProblem
+	}
+	if len(req.Password) < 8 {
+		fields["password"] = "Must be at least 8 characters."
+	}
+	if len(req.Password) > maxPassword {
+		fields["password"] = "Must be at most 72 characters."
+	}
+	if len(fields) > 0 {
+		writeFieldErrors(w, fields)
+		return
+	}
+
+	user, err := s.st.CreateUser(r.Context(), handle, req.Password, store.RoleMember)
+	if err != nil {
+		s.writeStoreError(w, r, err)
+		return
+	}
+	token := randomToken(32)
+	if err := s.st.CreateSession(r.Context(), token, user.ID, s.cfg.SessionTTL); err != nil {
+		s.writeStoreError(w, r, err)
+		return
+	}
+	s.setSessionCookie(w, token)
+	s.log.InfoContext(r.Context(), "account registered", "username", user.Username, "ip", s.clientIP(r))
+	writeJSON(w, http.StatusCreated, sessionResponse{
+		Authenticated: true,
+		Username:      user.Username,
+		Role:          user.Role,
+		IsAdmin:       false,
 		ExpiresIn:     int64(s.cfg.SessionTTL.Seconds()),
 	})
 }

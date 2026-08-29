@@ -39,6 +39,7 @@ export class LandingPage implements OnInit {
   /** Drives the auth buttons in the header. */
   protected readonly isAdmin = this.auth.isAdmin;
   protected readonly username = this.auth.username;
+  protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly sessionResolved = this.auth.resolved;
 
   /** Route to the published profile, once the handle is known. */

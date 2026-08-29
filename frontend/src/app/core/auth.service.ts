@@ -52,6 +52,13 @@ export class AuthService {
     );
   }
 
+  register(username: string, password: string): Observable<void> {
+    return this.api.register(username, password).pipe(
+      tap((session) => this.session.set(session)),
+      map(() => undefined),
+    );
+  }
+
   logout(): Observable<void> {
     return this.api.logout().pipe(
       tap(() => this.clear()),

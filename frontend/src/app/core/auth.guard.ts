@@ -24,6 +24,20 @@ export const authGuard: CanActivateFn = (_route, state) => {
   );
 };
 
+/** Blocks self-service profile screens for anonymous visitors. */
+export const signedInGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.ensureSession().pipe(
+    map(
+      (session) =>
+        session.authenticated ||
+        router.createUrlTree(['/admin/login'], { queryParams: { next: state.url } }),
+    ),
+  );
+};
+
 /** The owner panel: site settings and role changes. */
 export const ownerGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
@@ -39,5 +53,7 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.ensureSession().pipe(map((session) => !session.isAdmin || router.createUrlTree(['/admin'])));
+  return auth
+    .ensureSession()
+    .pipe(map((session) => !session.authenticated || router.createUrlTree([session.isAdmin ? '/admin' : '/profile'])));
 };

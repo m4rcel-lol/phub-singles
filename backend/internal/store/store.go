@@ -13,10 +13,15 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver, no cgo required
 )
+
+func isUniqueConstraint(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "unique constraint failed")
+}
 
 //go:embed all:migrations
 var migrationsFS embed.FS

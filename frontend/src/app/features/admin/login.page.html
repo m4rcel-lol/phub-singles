@@ -2,7 +2,7 @@
   <form class="card" (ngSubmit)="submit()" novalidate>
     <div class="brand">
       <app-wordmark />
-      <p class="sub">Admin sign in</p>
+      <p class="sub">Sign in</p>
     </div>
 
     @if (error(); as message) {
@@ -41,6 +41,7 @@
       {{ busy() ? 'Signing in…' : 'Sign in' }}
     </button>
 
+    <a class="back" routerLink="/register">Need a page? Create an account</a>
     <a class="back" href="/">← Back to the page</a>
   </form>
 </main>

@@ -43,14 +43,14 @@ func scanLink(row interface{ Scan(...any) error }) (Link, error) {
 
 // Links returns links ordered for display. When onlyEnabled is true the
 // disabled ones are filtered out (the public page path).
-func (s *Store) Links(ctx context.Context, onlyEnabled bool) ([]Link, error) {
-	query := `SELECT ` + linkColumns + ` FROM links`
+func (s *Store) Links(ctx context.Context, userID int64, onlyEnabled bool) ([]Link, error) {
+	query := `SELECT ` + linkColumns + ` FROM links WHERE user_id = ?`
 	if onlyEnabled {
-		query += ` WHERE enabled = 1`
+		query += ` AND enabled = 1`
 	}
 	query += ` ORDER BY position ASC, id ASC`
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := s.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list links: %w", err)
 	}
@@ -63,6 +63,25 @@ func (s *Store) Links(ctx context.Context, onlyEnabled bool) ([]Link, error) {
 			return nil, fmt.Errorf("scan link: %w", err)
 		}
 		links = append(links, l)
+	}
+	return links, rows.Err()
+}
+
+// AllLinks returns every account's links for site-wide administrator stats.
+func (s *Store) AllLinks(ctx context.Context) ([]Link, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+linkColumns+` FROM links ORDER BY position ASC, id ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("list all links: %w", err)
+	}
+	defer rows.Close()
+
+	links := make([]Link, 0, 16)
+	for rows.Next() {
+		link, err := scanLink(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan link: %w", err)
+		}
+		links = append(links, link)
 	}
 	return links, rows.Err()
 }
@@ -81,18 +100,18 @@ func (s *Store) Link(ctx context.Context, id int64) (Link, error) {
 }
 
 // CreateLink appends a link to the end of the list.
-func (s *Store) CreateLink(ctx context.Context, in LinkInput) (Link, error) {
+func (s *Store) CreateLink(ctx context.Context, userID int64, in LinkInput) (Link, error) {
 	var next int
 	if err := s.db.QueryRowContext(ctx,
-		`SELECT COALESCE(MAX(position), -1) + 1 FROM links`).Scan(&next); err != nil {
+		`SELECT COALESCE(MAX(position), -1) + 1 FROM links WHERE user_id = ?`, userID).Scan(&next); err != nil {
 		return Link{}, fmt.Errorf("next position: %w", err)
 	}
 
 	now := nowUTC()
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO links (title, url, icon, enabled, position, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		in.Title, in.URL, in.Icon, boolToInt(in.Enabled), next, now, now)
+		`INSERT INTO links (user_id, title, url, icon, enabled, position, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		userID, in.Title, in.URL, in.Icon, boolToInt(in.Enabled), next, now, now)
 	if err != nil {
 		return Link{}, fmt.Errorf("insert link: %w", err)
 	}
@@ -104,10 +123,10 @@ func (s *Store) CreateLink(ctx context.Context, in LinkInput) (Link, error) {
 }
 
 // UpdateLink rewrites the editable fields of an existing link.
-func (s *Store) UpdateLink(ctx context.Context, id int64, in LinkInput) (Link, error) {
+func (s *Store) UpdateLink(ctx context.Context, userID, id int64, in LinkInput) (Link, error) {
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE links SET title = ?, url = ?, icon = ?, enabled = ?, updated_at = ? WHERE id = ?`,
-		in.Title, in.URL, in.Icon, boolToInt(in.Enabled), nowUTC(), id)
+		`UPDATE links SET title = ?, url = ?, icon = ?, enabled = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+		in.Title, in.URL, in.Icon, boolToInt(in.Enabled), nowUTC(), id, userID)
 	if err != nil {
 		return Link{}, fmt.Errorf("update link: %w", err)
 	}
@@ -118,21 +137,21 @@ func (s *Store) UpdateLink(ctx context.Context, id int64, in LinkInput) (Link, e
 }
 
 // DeleteLink removes a link and closes the gap in the ordering.
-func (s *Store) DeleteLink(ctx context.Context, id int64) error {
+func (s *Store) DeleteLink(ctx context.Context, userID, id int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin delete: %w", err)
 	}
 	defer tx.Rollback()
 
-	res, err := tx.ExecContext(ctx, `DELETE FROM links WHERE id = ?`, id)
+	res, err := tx.ExecContext(ctx, `DELETE FROM links WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete link: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
-	if err := resequence(ctx, tx); err != nil {
+	if err := resequence(ctx, tx, userID); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -141,14 +160,14 @@ func (s *Store) DeleteLink(ctx context.Context, id int64) error {
 // ReorderLinks applies a new ordering. ids must contain exactly the ids that
 // currently exist, which makes the operation safe to replay and impossible to
 // use for partial (and therefore ambiguous) reordering.
-func (s *Store) ReorderLinks(ctx context.Context, ids []int64) ([]Link, error) {
+func (s *Store) ReorderLinks(ctx context.Context, userID int64, ids []int64) ([]Link, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin reorder: %w", err)
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.QueryContext(ctx, `SELECT id FROM links`)
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM links WHERE user_id = ?`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("load link ids: %w", err)
 	}
@@ -181,25 +200,25 @@ func (s *Store) ReorderLinks(ctx context.Context, ids []int64) ([]Link, error) {
 	}
 
 	now := nowUTC()
-	stmt, err := tx.PrepareContext(ctx, `UPDATE links SET position = ?, updated_at = ? WHERE id = ?`)
+	stmt, err := tx.PrepareContext(ctx, `UPDATE links SET position = ?, updated_at = ? WHERE id = ? AND user_id = ?`)
 	if err != nil {
 		return nil, fmt.Errorf("prepare reorder: %w", err)
 	}
 	defer stmt.Close()
 	for pos, id := range ids {
-		if _, err := stmt.ExecContext(ctx, pos, now, id); err != nil {
+		if _, err := stmt.ExecContext(ctx, pos, now, id, userID); err != nil {
 			return nil, fmt.Errorf("reorder link %d: %w", id, err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit reorder: %w", err)
 	}
-	return s.Links(ctx, false)
+	return s.Links(ctx, userID, false)
 }
 
 // resequence rewrites positions to 0..n-1 preserving the current order.
-func resequence(ctx context.Context, tx *sql.Tx) error {
-	rows, err := tx.QueryContext(ctx, `SELECT id FROM links ORDER BY position ASC, id ASC`)
+func resequence(ctx context.Context, tx *sql.Tx, userID int64) error {
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM links WHERE user_id = ? ORDER BY position ASC, id ASC`, userID)
 	if err != nil {
 		return fmt.Errorf("resequence read: %w", err)
 	}

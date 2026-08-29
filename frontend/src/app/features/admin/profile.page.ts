@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { ApiService, apiFieldErrors, apiMessage } from '../../core/api.service';
 import { Profile } from '../../core/models';
@@ -10,7 +11,7 @@ const LIMITS = { username: 32, displayName: 60, tagline: 120, bio: 400 } as cons
 @Component({
   selector: 'app-admin-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './profile.page.html',
   styleUrl: './profile.page.css',
 })

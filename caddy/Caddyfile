@@ -2,15 +2,10 @@
 # serves the API, the uploaded media and the compiled Angular bundle.
 # No file_server, no try_files, no rewrites: routing lives in the application.
 
-{
-	# Contact address for the ACME account. Override it with ACME_EMAIL in .env;
-	# the fallback keeps the config valid when the variable is left empty (the
-	# value only matters once a public domain requests a certificate).
-	email {$ACME_EMAIL:admin@pornhub.singles}
-}
-
 # SITE_ADDRESS is "localhost" for local runs (Caddy issues an internal
-# certificate) or your domain in production, e.g. "pornhub.singles".
+# certificate) or your domain in production, e.g. "pornhub.singles". Caddy's
+# ACME contact email is intentionally omitted; it is optional, not a runtime
+# dependency of the application.
 {$SITE_ADDRESS:localhost} {
 	header {
 		# HSTS is only honoured over HTTPS; harmless on a local http run.

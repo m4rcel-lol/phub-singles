@@ -17,7 +17,7 @@ type profileRequest struct {
 }
 
 func (s *Server) handleGetProfile(w http.ResponseWriter, r *http.Request) {
-	profile, err := s.st.Profile(r.Context())
+	profile, err := s.st.ProfileByUser(r.Context(), userFrom(r.Context()).ID)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -55,7 +55,7 @@ func (s *Server) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := s.st.UpdateProfile(r.Context(), p)
+	updated, err := s.st.UpdateProfile(r.Context(), userFrom(r.Context()).ID, p)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -97,7 +97,7 @@ func (req linkRequest) parse() (store.LinkInput, map[string]string) {
 }
 
 func (s *Server) handleListLinks(w http.ResponseWriter, r *http.Request) {
-	links, err := s.st.Links(r.Context(), false)
+	links, err := s.st.Links(r.Context(), userFrom(r.Context()).ID, false)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -116,7 +116,7 @@ func (s *Server) handleCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := s.st.CreateLink(r.Context(), in)
+	link, err := s.st.CreateLink(r.Context(), userFrom(r.Context()).ID, in)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -139,7 +139,7 @@ func (s *Server) handleUpdateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := s.st.UpdateLink(r.Context(), id, in)
+	link, err := s.st.UpdateLink(r.Context(), userFrom(r.Context()).ID, id, in)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
@@ -152,7 +152,7 @@ func (s *Server) handleDeleteLink(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.st.DeleteLink(r.Context(), id); err != nil {
+	if err := s.st.DeleteLink(r.Context(), userFrom(r.Context()).ID, id); err != nil {
 		s.writeStoreError(w, r, err)
 		return
 	}
@@ -175,7 +175,7 @@ func (s *Server) handleReorderLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	links, err := s.st.ReorderLinks(r.Context(), req.IDs)
+	links, err := s.st.ReorderLinks(r.Context(), userFrom(r.Context()).ID, req.IDs)
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return

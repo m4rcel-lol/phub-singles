@@ -105,7 +105,7 @@ func (s *Store) Stats(ctx context.Context, days int) (Stats, error) {
 		return st, fmt.Errorf("load metrics: %w", err)
 	}
 
-	links, err := s.Links(ctx, false)
+	links, err := s.AllLinks(ctx)
 	if err != nil {
 		return st, err
 	}

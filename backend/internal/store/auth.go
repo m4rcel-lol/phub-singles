@@ -253,11 +253,21 @@ func hashPassword(password string) (string, error) {
 // dummyHash is a valid bcrypt hash of a random value, used to equalise timing.
 var dummyHash = []byte("$2a$12$eImiTXuWVxfM37uY4JANjQ.hUkI3wjNL8/wS/8UcHrXlPKGZ2A6ye")
 
-// claimProfile points the single profile at an account when it has no owner.
+// claimProfile assigns the legacy owner page and creates its profile row.
 func (s *Store) claimProfile(ctx context.Context, userID int64) error {
 	if _, err := s.db.ExecContext(ctx,
 		`UPDATE profile SET user_id = ? WHERE id = 1 AND user_id IS NULL`, userID); err != nil {
 		return fmt.Errorf("assign profile owner: %w", err)
+	}
+	// Fresh databases have no user when migration 0006 runs.  Copy the seeded
+	// legacy profile only once the bootstrap owner exists.
+	if _, err := s.db.ExecContext(ctx,
+		`INSERT OR IGNORE INTO profiles (user_id, username, display_name, tagline, bio, avatar_url, updated_at)
+		 SELECT ?, username, display_name, tagline, bio, avatar_url, updated_at FROM profile WHERE id = 1`, userID); err != nil {
+		return fmt.Errorf("create owner profile: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx, `UPDATE links SET user_id = ? WHERE user_id IS NULL`, userID); err != nil {
+		return fmt.Errorf("assign legacy links: %w", err)
 	}
 	return nil
 }
@@ -297,6 +307,22 @@ func (s *Store) User(ctx context.Context, username string) (User, error) {
 	return u, nil
 }
 
+// UserByProfileHandle resolves the account behind a public profile.  Profile
+// handles may change independently of login names, so callers must not assume
+// the two values are equal.
+func (s *Store) UserByProfileHandle(ctx context.Context, handle string) (User, error) {
+	u, err := scanUser(s.db.QueryRowContext(ctx,
+		`SELECT `+userColumnsJoined+` FROM profiles p JOIN users u ON u.id = p.user_id
+		 WHERE p.username = ? COLLATE NOCASE`, strings.TrimSpace(handle)))
+	if errors.Is(err, sql.ErrNoRows) {
+		return User{}, ErrNotFound
+	}
+	if err != nil {
+		return User{}, fmt.Errorf("load profile user: %w", err)
+	}
+	return u, nil
+}
+
 // CreateUser adds an account. Creating a second owner is rejected: ownership is
 // transferred with SetOwner, never duplicated.
 func (s *Store) CreateUser(ctx context.Context, username, password, role string) (User, error) {
@@ -321,11 +347,36 @@ func (s *Store) CreateUser(ctx context.Context, username, password, role string)
 		return User{}, err
 	}
 
-	if _, err := s.db.ExecContext(ctx,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return User{}, fmt.Errorf("begin create user: %w", err)
+	}
+	defer tx.Rollback()
+	now := nowUTC()
+	result, err := tx.ExecContext(ctx,
 		`INSERT INTO users (username, password_hash, role, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?)`,
-		username, hash, role, nowUTC(), nowUTC()); err != nil {
+		 VALUES (?, ?, ?, ?, ?)`, username, hash, role, now, now)
+	if err != nil {
+		if isUniqueConstraint(err) {
+			return User{}, fmt.Errorf("%w: user %q already exists", ErrConflict, username)
+		}
 		return User{}, fmt.Errorf("create user: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return User{}, fmt.Errorf("create user id: %w", err)
+	}
+	handle := strings.ToLower(username)
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO profiles (user_id, username, display_name, updated_at) VALUES (?, ?, ?, ?)`,
+		id, handle, username, now); err != nil {
+		if isUniqueConstraint(err) {
+			return User{}, fmt.Errorf("%w: handle %q is already taken", ErrConflict, handle)
+		}
+		return User{}, fmt.Errorf("create profile: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return User{}, fmt.Errorf("commit create user: %w", err)
 	}
 	return s.User(ctx, username)
 }

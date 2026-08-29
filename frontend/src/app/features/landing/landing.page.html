@@ -9,14 +9,18 @@
          anonymous visitor never sees a failed request. -->
     <nav class="auth" aria-label="Account">
       @if (sessionResolved()) {
-        @if (isAdmin()) {
+        @if (isAuthenticated()) {
           <span class="who">{{ username() }}</span>
-          <a class="btn tiny" routerLink="/admin">Dashboard</a>
+          <a class="btn tiny" routerLink="/profile">Your profile</a>
+          @if (isAdmin()) {
+            <a class="btn tiny" routerLink="/admin">Dashboard</a>
+          }
           <button type="button" class="btn btn-ghost tiny" (click)="signOut()" [disabled]="signingOut()">
             {{ signingOut() ? 'Signing out…' : 'Sign out' }}
           </button>
         } @else {
           <a class="btn btn-primary tiny" routerLink="/admin/login">Sign in</a>
+          <a class="btn tiny" routerLink="/register">Create account</a>
         }
       }
     </nav>

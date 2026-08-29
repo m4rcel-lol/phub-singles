@@ -1,7 +1,7 @@
 # pornhub.singles
 
-A single-user bio-link page — profile header, an ordered list of links, first-party
-click counters — plus an admin panel to manage all of it. Dark, restrained, and fast:
+A self-service bio-link page — each account gets its own profile handle, with first-party
+click counters and an admin panel for site-wide management. Dark, restrained, and fast:
 the whole front end is ~80 kB over the wire.
 
 > **This is a parody project.** It is not affiliated with, endorsed by or connected to
@@ -28,7 +28,8 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Then open <http://localhost:25169> and sign in at <http://localhost:25169/admin>.
+Then open <http://localhost:25169>; visitors can create an account without configuring email,
+and the bootstrap owner can sign in at <http://localhost:25169/admin>.
 For a public deployment, terminate TLS in infrastructure outside this Compose stack.
 
 Seed data ships with the schema, so the site looks finished on first boot: a profile and
@@ -37,7 +38,9 @@ six example links at `/creator`.
 | Path        | What it is |
 |-------------|------------|
 | `/`         | Landing page (with the sign-in / dashboard buttons) |
-| `/<handle>` | The public bio page (`/creator` after a fresh install; the handle is editable) |
+| `/<handle>` | A public bio page (`/creator` after a fresh install; every account gets its own editable handle) |
+| `/register` | Password-only account registration (email is optional) |
+| `/profile` | Signed-in user's profile editor (with a separate personal link list) |
 | `/admin`    | Admin panel — links, profile, stats, password |
 | `/notice`   | Parody notice |
 | `/privacy`  | Privacy policy |
@@ -58,7 +61,7 @@ its page carries.
 |------|--------|-------|
 | `owner` | everything an admin can, plus **Site settings** and granting/revoking admin | **Owner** |
 | `admin` | manage the page, links and stats; add members; verify, reset and delete accounts *below* their own rank | **Administrator** |
-| `member` | nothing — a demoted account keeps its data and badges but cannot sign in | — |
+| `member` | sign in and edit their own public profile | — |
 
 Permission is decided by rank — **owner > admin > member — and you may only act
 on an account strictly below you**. An administrator therefore cannot touch
@@ -206,6 +209,7 @@ Public — no authentication, rate limited per IP:
 | `POST` | `/api/views` | Increment the page-view counter. |
 | `POST` | `/api/links/{id}/click` | Increment a link's click counter. |
 | `GET` | `/api/session` | Who the caller is; always 200, so anonymous visits do not 401. |
+| `POST` | `/api/register` | Create a member account and its public profile; no email service is required. |
 | `GET` | `/api/health` | Liveness. |
 | `GET` | `/api/ready` | Readiness (pings the database). |
 
@@ -216,8 +220,8 @@ Admin — requires the session cookie and a same-origin request:
 | `POST` | `/api/admin/login` | Sign in; sets `phs_session`. |
 | `POST` | `/api/admin/logout` | Revoke the session. |
 | `POST` | `/api/admin/password` | Change password; revokes all sessions. |
-| `GET`/`PUT` | `/api/admin/profile` | Read/update handle, name, tagline, bio. |
-| `POST`/`DELETE` | `/api/admin/profile/avatar` | Upload/remove the avatar. |
+| `GET`/`PUT` | `/api/admin/profile` | Read/update the signed-in account's handle, name, tagline and bio. |
+| `POST`/`DELETE` | `/api/admin/profile/avatar` | Upload/remove the signed-in account's avatar. |
 | `GET`/`POST` | `/api/admin/links` | List/create links. |
 | `PUT`/`DELETE` | `/api/admin/links/{id}` | Update/delete a link. |
 | `PUT` | `/api/admin/links/order` | Persist a new order (full id list). |
@@ -344,7 +348,7 @@ database is closed cleanly.
 
 ## Before you go live
 
-- Set a real `PHS_ADMIN_PASSWORD` and a real `SITE_ADDRESS` / `ACME_EMAIL`.
+- Set a real `PHS_ADMIN_PASSWORD` and `SITE_ADDRESS`. An ACME contact email is optional.
 - Change the handle, profile and links in the admin panel, and delete the sample links.
 - Decide who is the owner (`phs-server user set-owner`) before handing out admin accounts.
 - Look through the **Site** tab: headline, verification threshold and search-engine visibility all start at their defaults.

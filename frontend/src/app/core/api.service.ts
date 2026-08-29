@@ -64,6 +64,10 @@ export class ApiService {
     return this.http.post<SessionInfo>(`${API}/admin/login`, { username, password });
   }
 
+  register(username: string, password: string): Observable<SessionInfo> {
+    return this.http.post<SessionInfo>(`${API}/register`, { username, password });
+  }
+
   logout(): Observable<void> {
     return this.http.post<void>(`${API}/admin/logout`, {});
   }

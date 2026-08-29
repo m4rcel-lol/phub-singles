@@ -89,15 +89,19 @@ func do(t *testing.T, client *http.Client, method, url string, body any) (*http.
 
 func TestPublicPageExposesOnlyEnabledLinks(t *testing.T) {
 	ts, st := newTestServer(t)
+	owner, err := st.User(context.Background(), "admin")
+	if err != nil {
+		t.Fatalf("load owner: %v", err)
+	}
 
-	links, err := st.Links(context.Background(), false)
+	links, err := st.Links(context.Background(), owner.ID, false)
 	if err != nil {
 		t.Fatalf("list links: %v", err)
 	}
 	if len(links) == 0 {
 		t.Fatal("expected seeded links")
 	}
-	if _, err := st.UpdateLink(context.Background(), links[0].ID, store.LinkInput{
+	if _, err := st.UpdateLink(context.Background(), owner.ID, links[0].ID, store.LinkInput{
 		Title: links[0].Title, URL: links[0].URL, Icon: links[0].Icon, Enabled: false,
 	}); err != nil {
 		t.Fatalf("disable link: %v", err)
@@ -445,17 +449,64 @@ func TestBeaconsWithoutPageContextAreIgnored(t *testing.T) {
 	}
 }
 
-func TestNonAdminCannotSignIn(t *testing.T) {
+func TestMemberCanSignInAndEditOwnProfile(t *testing.T) {
 	ts, st := newTestServer(t)
+	client := ts.Client()
+	client.Jar = newJar(t)
 
 	if _, err := st.CreateUser(context.Background(), "member", "member-password", store.RoleMember); err != nil {
 		t.Fatalf("create member: %v", err)
 	}
 
-	resp, body := do(t, ts.Client(), http.MethodPost, ts.URL+"/api/admin/login",
+	resp, body := do(t, client, http.MethodPost, ts.URL+"/api/admin/login",
 		map[string]string{"username": "member", "password": "member-password"})
-	if resp.StatusCode != http.StatusForbidden {
-		t.Fatalf("member login = %d, want 403 (body %s)", resp.StatusCode, body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("member login = %d, want 200 (body %s)", resp.StatusCode, body)
+	}
+	resp, body = do(t, client, http.MethodPut, ts.URL+"/api/admin/profile", map[string]string{
+		"username": "member-page", "displayName": "Member", "tagline": "Hello", "bio": "My page.",
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("member profile update = %d, body = %s", resp.StatusCode, body)
+	}
+	resp, body = do(t, ts.Client(), http.MethodGet, ts.URL+"/api/page?handle=member-page", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("member public page = %d, body = %s", resp.StatusCode, body)
+	}
+}
+
+func TestRegistrationCreatesProfileAndSession(t *testing.T) {
+	ts, _ := newTestServer(t)
+	client := ts.Client()
+	client.Jar = newJar(t)
+
+	resp, body := do(t, client, http.MethodPost, ts.URL+"/api/register",
+		map[string]string{"username": "meow", "password": "meow-password"})
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("register = %d, body = %s", resp.StatusCode, body)
+	}
+	resp, body = do(t, client, http.MethodGet, ts.URL+"/api/admin/profile", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("own profile = %d, body = %s", resp.StatusCode, body)
+	}
+	resp, body = do(t, client, http.MethodPost, ts.URL+"/api/admin/links",
+		map[string]any{"title": "Meow only", "url": "https://example.test/meow", "icon": "🐈"})
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create personal link = %d, body = %s", resp.StatusCode, body)
+	}
+	resp, body = do(t, ts.Client(), http.MethodGet, ts.URL+"/api/page?handle=meow", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("registered public page = %d, body = %s", resp.StatusCode, body)
+	}
+	if !strings.Contains(string(body), "Meow only") {
+		t.Fatalf("personal link missing from profile page: %s", body)
+	}
+	resp, body = do(t, ts.Client(), http.MethodGet, ts.URL+"/api/page", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("owner page = %d, body = %s", resp.StatusCode, body)
+	}
+	if strings.Contains(string(body), "Meow only") {
+		t.Fatalf("personal link leaked onto owner page: %s", body)
 	}
 }
 
