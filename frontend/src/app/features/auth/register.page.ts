@@ -42,7 +42,7 @@ export class RegisterPage {
     this.auth.register(username, password).subscribe({
       next: () => {
         this.busy.set(false);
-        void this.router.navigate(['/profile']);
+        void this.router.navigate(['/dashboard']);
       },
       error: (err: unknown) => {
         this.busy.set(false);

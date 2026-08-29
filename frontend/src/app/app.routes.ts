@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { HomePage } from './features/home/home.page';
 import { LandingPage } from './features/landing/landing.page';
-import { guestGuard, signedInGuard } from './core/auth.guard';
+import { guestGuard } from './core/auth.guard';
 
 const SITE = 'pornhub.singles';
 
@@ -23,17 +23,11 @@ export const routes: Routes = [
     loadChildren: () => import('./features/admin/admin.routes').then((m) => m.adminRoutes),
   },
   {
-    path: 'profile',
-    canActivate: [signedInGuard],
-    title: `Your profile · ${SITE}`,
-    loadComponent: () => import('./features/admin/profile.page').then((m) => m.ProfilePage),
+    path: 'dashboard',
+    loadChildren: () => import('./features/dashboard/dashboard.routes').then((m) => m.dashboardRoutes),
   },
-  {
-    path: 'profile/links',
-    canActivate: [signedInGuard],
-    title: `Your links · ${SITE}`,
-    loadComponent: () => import('./features/admin/links.page').then((m) => m.LinksPage),
-  },
+  { path: 'profile/links', pathMatch: 'full', redirectTo: 'dashboard/links' },
+  { path: 'profile', pathMatch: 'full', redirectTo: 'dashboard/profile' },
   {
     path: 'register',
     canActivate: [guestGuard],

@@ -25,15 +25,18 @@ export class LoginPage {
 
   /**
    * Where to go after signing in. The guard puts the attempted URL in `next`;
-   * only in-app admin paths are honoured, so the parameter cannot be used to
+   * only in-app dashboard/admin paths are honoured, so the parameter cannot be used to
    * bounce someone off the site.
    */
   private destination(): string {
     const next = this.route.snapshot.queryParamMap.get('next') ?? '';
-    if (next === '/profile' || (next.startsWith('/admin') && !next.startsWith('//'))) {
+    if (next.startsWith('/dashboard') && !next.startsWith('//')) {
       return next;
     }
-    return this.auth.isAdmin() ? '/admin/links' : '/profile';
+    if (this.auth.isAdmin() && next.startsWith('/admin') && !next.startsWith('//')) {
+      return next;
+    }
+    return '/dashboard';
   }
 
   protected submit(): void {

@@ -40,7 +40,8 @@ six example links at `/creator`.
 | `/`         | Landing page (with the sign-in / dashboard buttons) |
 | `/<handle>` | A public bio page (`/creator` after a fresh install; every account gets its own editable handle) |
 | `/register` | Password-only account registration (email is optional) |
-| `/profile` | Signed-in user's profile editor (with a separate personal link list) |
+| `/dashboard` | Every signed-in user's profile, links and password settings |
+| `/admin` | Administrator/owner console for site-wide statistics, people and site settings |
 | `/admin`    | Admin panel — links, profile, stats, password |
 | `/notice`   | Parody notice |
 | `/privacy`  | Privacy policy |

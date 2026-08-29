@@ -11,9 +11,9 @@
       @if (sessionResolved()) {
         @if (isAuthenticated()) {
           <span class="who">{{ username() }}</span>
-          <a class="btn tiny" routerLink="/profile">Your profile</a>
+          <a class="btn tiny" routerLink="/dashboard">Dashboard</a>
           @if (isAdmin()) {
-            <a class="btn tiny" routerLink="/admin">Dashboard</a>
+            <a class="btn tiny" routerLink="/admin">Admin</a>
           }
           <button type="button" class="btn btn-ghost tiny" (click)="signOut()" [disabled]="signingOut()">
             {{ signingOut() ? 'Signing out…' : 'Sign out' }}

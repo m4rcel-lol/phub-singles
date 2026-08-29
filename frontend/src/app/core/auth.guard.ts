@@ -17,9 +17,7 @@ export const authGuard: CanActivateFn = (_route, state) => {
     map(
       (session) =>
         session.isAdmin ||
-        router.createUrlTree(['/admin/login'], {
-          queryParams: state.url === '/admin' ? {} : { next: state.url },
-        }),
+        router.createUrlTree(['/admin/login'], { queryParams: state.url === '/admin' ? {} : { next: state.url } }),
     ),
   );
 };
@@ -45,7 +43,7 @@ export const ownerGuard: CanActivateFn = () => {
 
   return auth
     .ensureSession()
-    .pipe(map((session) => session.role === 'owner' || router.createUrlTree(['/admin/links'])));
+    .pipe(map((session) => session.role === 'owner' || router.createUrlTree(['/admin/stats'])));
 };
 
 /** Keeps a signed-in admin from landing back on the login form. */
@@ -55,5 +53,5 @@ export const guestGuard: CanActivateFn = () => {
 
   return auth
     .ensureSession()
-    .pipe(map((session) => !session.authenticated || router.createUrlTree([session.isAdmin ? '/admin' : '/profile'])));
+    .pipe(map((session) => !session.authenticated || router.createUrlTree(['/dashboard'])));
 };

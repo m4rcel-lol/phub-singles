@@ -14,13 +14,14 @@
             }
           </span>
         }
+        <a class="btn" routerLink="/dashboard">Dashboard</a>
         <button type="button" class="btn btn-ghost" (click)="signOut()" [disabled]="signingOut()">
           {{ signingOut() ? 'Signing out…' : 'Sign out' }}
         </button>
       </div>
     </div>
 
-    <nav class="tabs" aria-label="Admin sections">
+    <nav class="tabs" aria-label="Admin console sections">
       <div class="tabs-inner">
         @for (tab of tabs(); track tab.path) {
           <a
